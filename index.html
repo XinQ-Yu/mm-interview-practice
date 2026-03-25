@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>多模态大模型面试练习站</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="hero">
+      <div>
+        <h1>多模态大模型面试练习站</h1>
+        <p>适合投递多模态大模型 / VLM / 多模态算法 / 应用研究岗位的随手刷题网站</p>
+      </div>
+      <div class="hero-actions">
+        <button id="randomModeBtn" class="primary">随机刷题</button>
+        <button id="mockModeBtn">模拟面试</button>
+      </div>
+    </header>
+
+    <section class="stats-grid">
+      <div class="stat-card">
+        <span>题库总数</span>
+        <strong id="totalCount">0</strong>
+      </div>
+      <div class="stat-card">
+        <span>已作答</span>
+        <strong id="answeredCount">0</strong>
+      </div>
+      <div class="stat-card">
+        <span>正确 / 掌握</span>
+        <strong id="correctCount">0</strong>
+      </div>
+      <div class="stat-card">
+        <span>错题本</span>
+        <strong id="wrongCount">0</strong>
+      </div>
+    </section>
+
+    <section class="panel filters">
+      <div class="filter-row">
+        <label>
+          题型
+          <select id="typeFilter">
+            <option value="all">全部</option>
+            <option value="mcq">选择题</option>
+            <option value="short">简答题</option>
+          </select>
+        </label>
+        <label>
+          方向
+          <select id="topicFilter">
+            <option value="all">全部</option>
+          </select>
+        </label>
+        <label>
+          难度
+          <select id="difficultyFilter">
+            <option value="all">全部</option>
+            <option value="easy">基础</option>
+            <option value="medium">中等</option>
+            <option value="hard">进阶</option>
+          </select>
+        </label>
+        <label>
+          模式
+          <select id="modeFilter">
+            <option value="all">全部题目</option>
+            <option value="wrong">仅错题本</option>
+            <option value="unanswered">仅未作答</option>
+            <option value="favorites">仅收藏</option>
+          </select>
+        </label>
+      </div>
+      <div class="filter-actions">
+        <button id="applyFilterBtn">应用筛选</button>
+        <button id="resetFilterBtn">重置</button>
+        <button id="nextQuestionBtn">下一题</button>
+      </div>
+    </section>
+
+    <section class="panel progress-panel">
+      <div class="progress-head">
+        <span id="progressText">准备开始</span>
+        <span id="sessionLabel">当前模式：自由刷题</span>
+      </div>
+      <div class="progress-bar">
+        <div id="progressFill"></div>
+      </div>
+    </section>
+
+    <main class="main-grid">
+      <section class="panel question-panel">
+        <div class="question-meta">
+          <span id="questionBadge" class="badge">未开始</span>
+          <span id="questionTopic" class="pill">方向</span>
+          <span id="questionDifficulty" class="pill">难度</span>
+        </div>
+        <h2 id="questionTitle">点击“随机刷题”开始练习</h2>
+        <div id="optionsContainer"></div>
+        <div id="shortAnswerContainer" class="hidden">
+          <textarea id="shortAnswerInput" placeholder="在这里输入你的回答，再点击“提交作答”查看参考答案与答题要点。"></textarea>
+        </div>
+        <div class="question-actions">
+          <button id="submitBtn" class="primary">提交作答</button>
+          <button id="showAnswerBtn">显示答案</button>
+          <button id="markMasteredBtn">已掌握</button>
+          <button id="markWrongBtn">加入错题</button>
+          <button id="favoriteBtn">收藏</button>
+        </div>
+        <div id="feedbackBox" class="feedback hidden"></div>
+      </section>
+
+      <aside class="panel side-panel">
+        <h3>练习设置</h3>
+        <div class="setting-block">
+          <label>
+            模拟题数
+            <input id="mockCountInput" type="number" value="10" min="5" max="30" />
+          </label>
+        </div>
+        <div class="setting-block">
+          <label class="upload-label">
+            导入自定义题库 JSON
+            <input id="importQuestionsInput" type="file" accept="application/json" />
+          </label>
+          <p class="hint">可在现有题库基础上追加自己的题目。</p>
+        </div>
+        <div class="setting-block">
+          <button id="exportStatsBtn">导出练习记录</button>
+          <button id="clearStatsBtn" class="danger">清空本地记录</button>
+        </div>
+        <div class="setting-block">
+          <h4>简答题建议答题结构</h4>
+          <ul>
+            <li>先讲定义 / 目标</li>
+            <li>再讲核心方法</li>
+            <li>补充优缺点和 trade-off</li>
+            <li>最后落到工程实践</li>
+          </ul>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
