@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>多模态大模型面试练习站</title>
+  <title>多模态大模型面试练习站（500+题）</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -11,7 +11,7 @@
     <header class="hero">
       <div>
         <h1>多模态大模型面试练习站</h1>
-        <p>适合投递多模态大模型 / VLM / 多模态算法 / 应用研究岗位的随手刷题网站</p>
+        <p>覆盖 500+ 题：选择题 / 判断题 / 简答题，适合多模态大模型、VLM、模型训练与应用岗位准备</p>
       </div>
       <div class="hero-actions">
         <button id="randomModeBtn" class="primary">随机刷题</button>
@@ -45,6 +45,7 @@
           <select id="typeFilter">
             <option value="all">全部</option>
             <option value="mcq">选择题</option>
+            <option value="judge">判断题</option>
             <option value="short">简答题</option>
           </select>
         </label>
@@ -76,6 +77,7 @@
       <div class="filter-actions">
         <button id="applyFilterBtn">应用筛选</button>
         <button id="resetFilterBtn">重置</button>
+        <button id="prevQuestionBtn">上一题</button>
         <button id="nextQuestionBtn">下一题</button>
       </div>
     </section>
@@ -96,8 +98,10 @@
           <span id="questionBadge" class="badge">未开始</span>
           <span id="questionTopic" class="pill">方向</span>
           <span id="questionDifficulty" class="pill">难度</span>
+          <span id="questionIdTag" class="pill">题号</span>
         </div>
         <h2 id="questionTitle">点击“随机刷题”开始练习</h2>
+        <p id="questionHint" class="question-hint">支持上一题 / 下一题，判断题按“正确 / 错误”作答，简答题可先写要点再对照参考答案。</p>
         <div id="optionsContainer"></div>
         <div id="shortAnswerContainer" class="hidden">
           <textarea id="shortAnswerInput" placeholder="在这里输入你的回答，再点击“提交作答”查看参考答案与答题要点。"></textarea>
@@ -117,7 +121,7 @@
         <div class="setting-block">
           <label>
             模拟题数
-            <input id="mockCountInput" type="number" value="10" min="5" max="30" />
+            <input id="mockCountInput" type="number" value="15" min="5" max="50" />
           </label>
         </div>
         <div class="setting-block">
@@ -125,19 +129,29 @@
             导入自定义题库 JSON
             <input id="importQuestionsInput" type="file" accept="application/json" />
           </label>
-          <p class="hint">可在现有题库基础上追加自己的题目。</p>
+          <p class="hint">支持继续追加你自己的题库，格式可参考 sample_custom_questions.json。</p>
         </div>
         <div class="setting-block">
           <button id="exportStatsBtn">导出练习记录</button>
           <button id="clearStatsBtn" class="danger">清空本地记录</button>
         </div>
         <div class="setting-block">
+          <h4>当前覆盖方向</h4>
+          <ul>
+            <li>激活函数、归一化、过拟合 / 欠拟合、优化器、损失函数</li>
+            <li>Transformer、BERT、RoBERTa、ViT、表征学习</li>
+            <li>跨模态融合、CLIP、ViLT、BLIP、BLIP-2、LLaVA、Qwen3-VL</li>
+            <li>LoRA、QLoRA、Adapter、Prompt-Tuning、P-Tuning v2</li>
+            <li>SFT、RLHF、PPO、DPO、GRPO、KTO</li>
+          </ul>
+        </div>
+        <div class="setting-block">
           <h4>简答题建议答题结构</h4>
           <ul>
             <li>先讲定义 / 目标</li>
-            <li>再讲核心方法</li>
+            <li>再讲核心方法或结构</li>
             <li>补充优缺点和 trade-off</li>
-            <li>最后落到工程实践</li>
+            <li>最后落到工程实践或选型建议</li>
           </ul>
         </div>
       </aside>
