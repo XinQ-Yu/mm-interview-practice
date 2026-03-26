@@ -1,7 +1,9 @@
 const STORAGE_KEYS = {
-  stats: "mm_practice_stats_v2",
-  customBank: "mm_practice_custom_bank_v2",
+  stats: "mm_practice_stats_v3",
+  customBank: "mm_practice_custom_bank_v3",
 };
+
+const LIST_PAGE_SIZE = 50;
 
 const state = {
   bank: [],
@@ -10,6 +12,7 @@ const state = {
   currentIndex: 0,
   sessionType: "free",
   sessionPool: [],
+  listPage: 1,
   stats: {
     answered: {},
     correctIds: [],
@@ -21,6 +24,7 @@ const state = {
 
 const els = {
   totalCount: document.getElementById("totalCount"),
+  filteredCount: document.getElementById("filteredCount"),
   answeredCount: document.getElementById("answeredCount"),
   correctCount: document.getElementById("correctCount"),
   wrongCount: document.getElementById("wrongCount"),
@@ -56,6 +60,11 @@ const els = {
   importQuestionsInput: document.getElementById("importQuestionsInput"),
   exportStatsBtn: document.getElementById("exportStatsBtn"),
   clearStatsBtn: document.getElementById("clearStatsBtn"),
+  questionList: document.getElementById("questionList"),
+  listPrevPageBtn: document.getElementById("listPrevPageBtn"),
+  listNextPageBtn: document.getElementById("listNextPageBtn"),
+  listPageInfo: document.getElementById("listPageInfo"),
+  bankSummary: document.getElementById("bankSummary"),
 };
 
 function normalizeStats(stats) {
@@ -113,16 +122,41 @@ function getActivePool() {
   return state.sessionPool.length ? state.sessionPool : (state.filtered.length ? state.filtered : state.bank);
 }
 
+function getListPool() {
+  return getActivePool();
+}
+
+function syncCurrentIndex() {
+  const pool = getActivePool();
+  if (!pool.length || !state.current) {
+    state.currentIndex = 0;
+    return 0;
+  }
+  const idx = pool.findIndex(item => item.id === state.current.id);
+  state.currentIndex = idx >= 0 ? idx : 0;
+  return state.currentIndex;
+}
+
 function setCurrentByIndex(index) {
   const pool = getActivePool();
   if (!pool.length) {
     state.current = null;
+    state.currentIndex = 0;
     clearQuestionPanel("暂无可练习题目。");
+    renderQuestionList();
     return;
   }
   state.currentIndex = ((index % pool.length) + pool.length) % pool.length;
   state.current = pool[state.currentIndex];
   renderQuestion();
+  renderQuestionList();
+}
+
+function jumpToQuestionById(questionId) {
+  const pool = getActivePool();
+  const idx = pool.findIndex(item => item.id === questionId);
+  if (idx < 0) return;
+  setCurrentByIndex(idx);
 }
 
 function applyFilters() {
@@ -149,6 +183,7 @@ function applyFilters() {
   state.filtered = filtered;
   state.sessionPool = filtered;
   state.currentIndex = 0;
+  state.listPage = 1;
   state.sessionType = mode === "wrong" ? "wrong" : "free";
   const modeLabelMap = {
     all: "自由刷题",
@@ -166,16 +201,19 @@ function applyFilters() {
     clearQuestionPanel("当前筛选条件下没有题目，试试重置筛选。");
   }
   renderStats();
+  renderQuestionList();
 }
 
 function startRandomMode() {
   state.sessionType = "random";
   state.sessionPool = shuffle(state.filtered.length ? state.filtered : state.bank);
   state.currentIndex = 0;
+  state.listPage = 1;
   els.sessionLabel.textContent = "当前模式：随机刷题";
   state.current = state.sessionPool[0] || null;
   if (state.current) renderQuestion();
   else clearQuestionPanel("暂无可练习题目。");
+  renderQuestionList();
 }
 
 function startMockMode() {
@@ -183,10 +221,12 @@ function startMockMode() {
   state.sessionType = "mock";
   state.sessionPool = shuffle(state.filtered.length ? state.filtered : state.bank).slice(0, count);
   state.currentIndex = 0;
+  state.listPage = 1;
   els.sessionLabel.textContent = `当前模式：模拟面试（${state.sessionPool.length} 题）`;
   state.current = state.sessionPool[0] || null;
   if (state.current) renderQuestion();
   else clearQuestionPanel("暂无可练习题目。");
+  renderQuestionList();
 }
 
 function changeQuestion(step) {
@@ -195,7 +235,8 @@ function changeQuestion(step) {
     clearQuestionPanel("暂无可练习题目。");
     return;
   }
-  setCurrentByIndex(state.currentIndex + step);
+  const currentIndex = syncCurrentIndex();
+  setCurrentByIndex(currentIndex + step);
 }
 
 function prevQuestion() {
@@ -212,7 +253,7 @@ function clearQuestionPanel(text) {
   els.questionDifficulty.textContent = "难度";
   els.questionIdTag.textContent = "题号";
   els.questionTitle.textContent = text;
-  els.questionHint.textContent = "点击“随机刷题”或“模拟面试”开始。";
+  els.questionHint.textContent = "点击“随机刷题”或在下方题目总表中选题。";
   els.optionsContainer.innerHTML = "";
   els.shortAnswerContainer.classList.add("hidden");
   hideFeedback();
@@ -259,6 +300,7 @@ function renderQuestion() {
   }
 
   updateProgress();
+  renderQuestionList();
 }
 
 function showFeedback(html, tone = "neutral") {
@@ -284,12 +326,15 @@ function markAnswered(questionId, isCorrect, extra = {}) {
     state.stats.wrongIds = state.stats.wrongIds.filter(id => id !== questionId);
   } else {
     if (!state.stats.wrongIds.includes(questionId)) state.stats.wrongIds.push(questionId);
-    state.stats.correctIds = state.stats.correctIds.filter(id => id !== questionId || extra.selfMarked);
+    if (extra.selfMarked) {
+      state.stats.correctIds = state.stats.correctIds.filter(id => id !== questionId);
+    }
   }
 
   state.stats.history.push({ questionId, isCorrect, at: new Date().toISOString() });
   writeStorage();
   renderStats();
+  renderQuestionList();
 }
 
 function submitAnswer() {
@@ -372,12 +417,13 @@ function toggleFavorite() {
   }
   writeStorage();
   renderQuestion();
+  renderQuestionList();
 }
 
 function updateProgress() {
   const pool = getActivePool();
   const total = pool.length || state.bank.length || 1;
-  const index = state.current ? Math.min(state.currentIndex + 1, total) : 0;
+  const index = state.current ? Math.min(syncCurrentIndex() + 1, total) : 0;
   const percent = total ? Math.round((index / total) * 100) : 0;
   els.progressText.textContent = state.current ? `当前第 ${index} / ${total} 题` : "准备开始";
   els.progressFill.style.width = `${percent}%`;
@@ -385,9 +431,72 @@ function updateProgress() {
 
 function renderStats() {
   els.totalCount.textContent = state.bank.length;
+  els.filteredCount.textContent = getActivePool().length;
   els.answeredCount.textContent = Object.keys(state.stats.answered).length;
   els.correctCount.textContent = state.stats.correctIds.length;
   els.wrongCount.textContent = state.stats.wrongIds.length;
+}
+
+function renderQuestionList() {
+  const pool = getListPool();
+  const totalPages = Math.max(1, Math.ceil((pool.length || 0) / LIST_PAGE_SIZE));
+  state.listPage = Math.min(Math.max(state.listPage, 1), totalPages);
+  const start = (state.listPage - 1) * LIST_PAGE_SIZE;
+  const pageItems = pool.slice(start, start + LIST_PAGE_SIZE);
+
+  els.questionList.innerHTML = "";
+  els.bankSummary.textContent = pool.length
+    ? `当前列表共 ${pool.length} 道题，每页 50 道，可直接点击跳转。`
+    : "当前没有可展示的题目。";
+  els.listPageInfo.textContent = `第 ${state.listPage} / ${totalPages} 页`;
+  els.listPrevPageBtn.disabled = state.listPage <= 1;
+  els.listNextPageBtn.disabled = state.listPage >= totalPages;
+
+  if (!pageItems.length) {
+    const empty = document.createElement("div");
+    empty.className = "list-empty";
+    empty.textContent = "当前没有题目。请调整筛选条件。";
+    els.questionList.appendChild(empty);
+    return;
+  }
+
+  pageItems.forEach((q, idx) => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "question-list-item";
+    if (state.current?.id === q.id) item.classList.add("active");
+    if (state.stats.favoriteIds.includes(q.id)) item.classList.add("favorite");
+    if (state.stats.wrongIds.includes(q.id)) item.classList.add("wrong-mark");
+    if (state.stats.correctIds.includes(q.id)) item.classList.add("correct-mark");
+
+    const answerState = state.stats.answered[q.id]
+      ? (state.stats.answered[q.id].isCorrect ? "已掌握" : "已作答")
+      : "未作答";
+
+    item.innerHTML = `
+      <div class="list-item-top">
+        <span class="list-order">${start + idx + 1}</span>
+        <span class="pill small">${q.id}</span>
+        <span class="pill small">${labelType(q.type)}</span>
+        <span class="pill small">${q.topic}</span>
+        <span class="pill small">${labelDifficulty(q.difficulty)}</span>
+      </div>
+      <div class="list-question">${q.question}</div>
+      <div class="list-item-bottom">
+        <span>${answerState}</span>
+        <span>${state.stats.favoriteIds.includes(q.id) ? "已收藏" : "可收藏"}</span>
+      </div>
+    `;
+    item.addEventListener("click", () => jumpToQuestionById(q.id));
+    els.questionList.appendChild(item);
+  });
+}
+
+function gotoListPage(step) {
+  const pool = getListPool();
+  const totalPages = Math.max(1, Math.ceil((pool.length || 0) / LIST_PAGE_SIZE));
+  state.listPage = Math.min(Math.max(state.listPage + step, 1), totalPages);
+  renderQuestionList();
 }
 
 function resetFilters() {
@@ -485,6 +594,8 @@ function init() {
   els.importQuestionsInput.addEventListener("change", handleImportQuestions);
   els.exportStatsBtn.addEventListener("click", exportStats);
   els.clearStatsBtn.addEventListener("click", clearStats);
+  els.listPrevPageBtn.addEventListener("click", () => gotoListPage(-1));
+  els.listNextPageBtn.addEventListener("click", () => gotoListPage(1));
   bindKeyboard();
 }
 
